@@ -1,0 +1,338 @@
+// ============================================================================
+// GCR INFLECTION POINT SCANNER - TradingView Pine Script v5
+// ============================================================================
+// Based on GCR's contrarian trading philosophy:
+// - "Most people are wrong at EXTREME situations"
+// - Finding inflection points when narratives peak ("Sell the News")
+// - Identifying when price meets resistance while crowd is euphoric
+// ============================================================================
+// Use: Scanner/Screener for identifying potential reversal setups
+// Works on: Crypto, Stocks, ETFs - any asset with sufficient volume
+// ============================================================================
+
+//@version=5
+indicator("GCR Inflection Point Scanner", shorttitle="GCR Scanner", overlay=true)
+
+// ============================================================================
+// USER INPUTS
+// ============================================================================
+
+// === Sentiment Extreme Detection ===
+grp_sentiment = "📊 Sentiment Extremes"
+rsi_length = input.int(14, "RSI Length", minval=1, group=grp_sentiment)
+rsi_ob = input.float(75, "RSI Overbought", minval=50, maxval=95, group=grp_sentiment)
+rsi_os = input.float(25, "RSI Oversold", minval=5, maxval=50, group=grp_sentiment)
+stoch_length = input.int(14, "Stochastic Length", minval=1, group=grp_sentiment)
+stoch_ob = input.float(80, "Stoch Overbought", minval=50, maxval=95, group=grp_sentiment)
+stoch_os = input.float(20, "Stoch Oversold", minval=5, maxval=50, group=grp_sentiment)
+
+// === Volume Analysis (Crowd Behavior) ===
+grp_volume = "📈 Volume Analysis"
+vol_ma_length = input.int(20, "Volume MA Length", minval=1, group=grp_volume)
+vol_spike_mult = input.float(2.0, "Volume Spike Multiplier", minval=1.0, step=0.1, group=grp_volume)
+vol_exhaustion_mult = input.float(2.5, "Exhaustion Volume Mult", minval=1.5, step=0.1, group=grp_volume)
+
+// === Price Action / Inflection Points ===
+grp_price = "🎯 Price Action"
+bb_length = input.int(20, "Bollinger Band Length", minval=1, group=grp_price)
+bb_mult = input.float(2.0, "BB Standard Deviation", minval=0.5, step=0.1, group=grp_price)
+atr_length = input.int(14, "ATR Length", minval=1, group=grp_price)
+pivot_left = input.int(5, "Pivot Left Bars", minval=1, group=grp_price)
+pivot_right = input.int(2, "Pivot Right Bars", minval=1, group=grp_price)
+
+// === Trend Analysis ===
+grp_trend = "📐 Trend Analysis"
+ema_fast = input.int(9, "Fast EMA", minval=1, group=grp_trend)
+ema_slow = input.int(21, "Slow EMA", minval=1, group=grp_trend)
+ema_trend = input.int(50, "Trend EMA", minval=1, group=grp_trend)
+
+// === Divergence Detection ===
+grp_div = "🔀 Divergence Settings"
+div_lookback = input.int(30, "Divergence Lookback", minval=10, group=grp_div)
+enable_divergence = input.bool(true, "Enable Divergence Detection", group=grp_div)
+
+// === Visual Settings ===
+grp_visual = "🎨 Visual"
+show_signals = input.bool(true, "Show Entry Signals", group=grp_visual)
+show_zones = input.bool(true, "Show Extreme Zones", group=grp_visual)
+alert_enabled = input.bool(true, "Enable Alerts", group=grp_visual)
+
+// ============================================================================
+// CALCULATIONS
+// ============================================================================
+
+// === RSI ===
+rsi = ta.rsi(close, rsi_length)
+rsi_extreme_high = rsi >= rsi_ob
+rsi_extreme_low = rsi <= rsi_os
+
+// === Stochastic ===
+[stoch_k, stoch_d] = ta.stoch(close, high, low, stoch_length)
+stoch_extreme_high = stoch_k >= stoch_ob and stoch_d >= stoch_ob
+stoch_extreme_low = stoch_k <= stoch_os and stoch_d <= stoch_os
+
+// === Volume Analysis ===
+vol_ma = ta.sma(volume, vol_ma_length)
+vol_spike = volume > vol_ma * vol_spike_mult
+vol_exhaustion = volume > vol_ma * vol_exhaustion_mult
+relative_volume = volume / vol_ma
+
+// === Bollinger Bands (Price Extremes) ===
+[bb_mid, bb_upper, bb_lower] = ta.bb(close, bb_length, bb_mult)
+bb_width = (bb_upper - bb_lower) / bb_mid * 100
+price_at_upper = high >= bb_upper
+price_at_lower = low <= bb_lower
+
+// === ATR for Volatility ===
+atr = ta.atr(atr_length)
+atr_percent = atr / close * 100
+
+// === EMAs ===
+ema_f = ta.ema(close, ema_fast)
+ema_s = ta.ema(close, ema_slow)
+ema_t = ta.ema(close, ema_trend)
+
+// === Trend Direction ===
+trend_up = ema_f > ema_s and close > ema_t
+trend_down = ema_f < ema_s and close < ema_t
+
+// === Pivot Points (Inflection Points) ===
+pivot_high = ta.pivothigh(high, pivot_left, pivot_right)
+pivot_low = ta.pivotlow(low, pivot_left, pivot_right)
+
+// ============================================================================
+// DIVERGENCE DETECTION (Key GCR Signal)
+// ============================================================================
+
+// Find recent swing highs/lows in price
+price_high_1 = ta.highest(high, div_lookback / 2)
+price_high_2 = ta.highest(high[div_lookback/2], div_lookback / 2)
+price_low_1 = ta.lowest(low, div_lookback / 2)
+price_low_2 = ta.lowest(low[div_lookback/2], div_lookback / 2)
+
+// Find RSI values at those points
+rsi_at_high_1 = ta.valuewhen(high == price_high_1, rsi, 0)
+rsi_at_high_2 = ta.valuewhen(high == price_high_2, rsi, 0)
+rsi_at_low_1 = ta.valuewhen(low == price_low_1, rsi, 0)
+rsi_at_low_2 = ta.valuewhen(low[div_lookback/2] == price_low_2, rsi, 0)
+
+// Bearish divergence: Higher high in price, lower high in RSI
+bearish_div = enable_divergence and 
+              price_high_1 > price_high_2 and 
+              rsi_at_high_1 < rsi_at_high_2 and 
+              rsi > 60
+
+// Bullish divergence: Lower low in price, higher low in RSI  
+bullish_div = enable_divergence and 
+              price_low_1 < price_low_2 and 
+              rsi_at_low_1 > rsi_at_low_2 and 
+              rsi < 40
+
+// ============================================================================
+// GCR INFLECTION POINT SIGNALS
+// ============================================================================
+
+// === BEARISH INFLECTION (Potential Top / Short Setup) ===
+// The GCR setup: Extreme bullish sentiment + Volume exhaustion + Price at resistance
+bearish_sentiment = rsi_extreme_high or stoch_extreme_high
+bearish_volume_signal = vol_exhaustion and close < open  // High volume rejection candle
+bearish_price_signal = price_at_upper or (not na(pivot_high) and pivot_high == high[pivot_right])
+
+// Full bearish inflection signal
+bearish_inflection = bearish_sentiment and 
+                     vol_spike and 
+                     bearish_price_signal and
+                     (bearish_div or rsi > rsi_ob)
+
+// Strong bearish (multiple confirmations)
+strong_bearish = bearish_inflection and bearish_div and vol_exhaustion
+
+// === BULLISH INFLECTION (Potential Bottom / Long Setup) ===
+// The GCR contrarian buy: Extreme fear + Capitulation volume + Price at support
+bullish_sentiment = rsi_extreme_low or stoch_extreme_low
+bullish_volume_signal = vol_exhaustion and close > open  // High volume reversal candle
+bullish_price_signal = price_at_lower or (not na(pivot_low) and pivot_low == low[pivot_right])
+
+// Full bullish inflection signal
+bullish_inflection = bullish_sentiment and 
+                     vol_spike and 
+                     bullish_price_signal and
+                     (bullish_div or rsi < rsi_os)
+
+// Strong bullish (multiple confirmations)
+strong_bullish = bullish_inflection and bullish_div and vol_exhaustion
+
+// ============================================================================
+// SCORING SYSTEM (For Screener)
+// ============================================================================
+
+// Calculate a score from -100 (extreme bearish) to +100 (extreme bullish)
+var float score = 0.0
+
+// RSI contribution (-25 to +25)
+rsi_score = (50 - rsi) / 2
+
+// Stochastic contribution (-15 to +15)
+stoch_score = (50 - stoch_k) * 0.3
+
+// Volume contribution (-10 to +10)
+vol_score = vol_spike ? (close > open ? 10 : -10) : 0
+
+// Divergence contribution (-25 to +25)
+div_score = bearish_div ? -25 : (bullish_div ? 25 : 0)
+
+// Bollinger Band contribution (-25 to +25)
+bb_score = price_at_upper ? -25 : (price_at_lower ? 25 : 0)
+
+// Total score
+score := rsi_score + stoch_score + vol_score + div_score + bb_score
+
+// ============================================================================
+// VISUAL PLOTTING
+// ============================================================================
+
+// Plot EMAs
+plot(ema_f, "Fast EMA", color=color.new(color.blue, 70))
+plot(ema_s, "Slow EMA", color=color.new(color.orange, 70))
+plot(ema_t, "Trend EMA", color=color.new(color.white, 70), linewidth=2)
+
+// Plot Bollinger Bands
+p_bb_upper = plot(bb_upper, "BB Upper", color=color.new(color.red, 80))
+p_bb_lower = plot(bb_lower, "BB Lower", color=color.new(color.green, 80))
+fill(p_bb_upper, p_bb_lower, color=color.new(color.gray, 95))
+
+// === Signal Markers ===
+// Bearish inflection points
+plotshape(show_signals and bearish_inflection and not strong_bearish, 
+          title="Bearish Inflection", 
+          style=shape.triangledown, 
+          location=location.abovebar, 
+          color=color.orange, 
+          size=size.small)
+
+plotshape(show_signals and strong_bearish, 
+          title="STRONG Bearish Inflection", 
+          style=shape.triangledown, 
+          location=location.abovebar, 
+          color=color.red, 
+          size=size.normal,
+          text="GCR")
+
+// Bullish inflection points  
+plotshape(show_signals and bullish_inflection and not strong_bullish, 
+          title="Bullish Inflection", 
+          style=shape.triangleup, 
+          location=location.belowbar, 
+          color=color.aqua, 
+          size=size.small)
+
+plotshape(show_signals and strong_bullish, 
+          title="STRONG Bullish Inflection", 
+          style=shape.triangleup, 
+          location=location.belowbar, 
+          color=color.lime, 
+          size=size.normal,
+          text="GCR")
+
+// Divergence markers
+plotshape(show_signals and bearish_div and not bearish_inflection, 
+          title="Bearish Divergence", 
+          style=shape.xcross, 
+          location=location.abovebar, 
+          color=color.new(color.red, 50), 
+          size=size.tiny)
+
+plotshape(show_signals and bullish_div and not bullish_inflection, 
+          title="Bullish Divergence", 
+          style=shape.xcross, 
+          location=location.belowbar, 
+          color=color.new(color.green, 50), 
+          size=size.tiny)
+
+// Background color for extreme zones
+bgcolor(show_zones and rsi_extreme_high and vol_spike ? color.new(color.red, 90) : na)
+bgcolor(show_zones and rsi_extreme_low and vol_spike ? color.new(color.green, 90) : na)
+
+// ============================================================================
+// INFORMATION TABLE
+// ============================================================================
+
+var table info_table = table.new(position.top_right, 2, 8, 
+                                  bgcolor=color.new(color.black, 80), 
+                                  border_color=color.gray)
+
+if barstate.islast
+    table.cell(info_table, 0, 0, "GCR Scanner", text_color=color.white, text_size=size.normal)
+    table.cell(info_table, 1, 0, "", text_color=color.white)
+    
+    table.cell(info_table, 0, 1, "RSI:", text_color=color.gray)
+    rsi_color = rsi > rsi_ob ? color.red : (rsi < rsi_os ? color.green : color.white)
+    table.cell(info_table, 1, 1, str.tostring(rsi, "#.#"), text_color=rsi_color)
+    
+    table.cell(info_table, 0, 2, "Stoch K:", text_color=color.gray)
+    stoch_color = stoch_k > stoch_ob ? color.red : (stoch_k < stoch_os ? color.green : color.white)
+    table.cell(info_table, 1, 2, str.tostring(stoch_k, "#.#"), text_color=stoch_color)
+    
+    table.cell(info_table, 0, 3, "Rel Vol:", text_color=color.gray)
+    vol_color = relative_volume > vol_spike_mult ? color.yellow : color.white
+    table.cell(info_table, 1, 3, str.tostring(relative_volume, "#.##") + "x", text_color=vol_color)
+    
+    table.cell(info_table, 0, 4, "BB Width:", text_color=color.gray)
+    table.cell(info_table, 1, 4, str.tostring(bb_width, "#.#") + "%", text_color=color.white)
+    
+    table.cell(info_table, 0, 5, "Score:", text_color=color.gray)
+    score_color = score > 30 ? color.green : (score < -30 ? color.red : color.white)
+    table.cell(info_table, 1, 5, str.tostring(score, "#"), text_color=score_color)
+    
+    table.cell(info_table, 0, 6, "Signal:", text_color=color.gray)
+    signal_text = strong_bearish ? "⚠️ SELL" : (strong_bullish ? "✅ BUY" : 
+                  (bearish_inflection ? "🔻 Caution" : (bullish_inflection ? "🔺 Watch" : "—")))
+    signal_color = strong_bearish ? color.red : (strong_bullish ? color.green : 
+                   (bearish_inflection ? color.orange : (bullish_inflection ? color.aqua : color.gray)))
+    table.cell(info_table, 1, 6, signal_text, text_color=signal_color)
+    
+    // Divergence status
+    table.cell(info_table, 0, 7, "Divergence:", text_color=color.gray)
+    div_text = bearish_div ? "Bearish" : (bullish_div ? "Bullish" : "None")
+    div_color = bearish_div ? color.red : (bullish_div ? color.green : color.gray)
+    table.cell(info_table, 1, 7, div_text, text_color=div_color)
+
+// ============================================================================
+// ALERTS
+// ============================================================================
+
+alertcondition(strong_bearish, 
+               title="GCR Strong Bearish Inflection", 
+               message="🔴 GCR STRONG BEARISH: {{ticker}} - Extreme overbought + Volume exhaustion + Divergence. Consider SHORT/EXIT.")
+
+alertcondition(strong_bullish, 
+               title="GCR Strong Bullish Inflection", 
+               message="🟢 GCR STRONG BULLISH: {{ticker}} - Extreme oversold + Capitulation volume + Divergence. Consider LONG/ENTRY.")
+
+alertcondition(bearish_inflection, 
+               title="GCR Bearish Inflection", 
+               message="🟠 GCR Bearish Setup: {{ticker}} - Overbought with volume spike. Watch for reversal.")
+
+alertcondition(bullish_inflection, 
+               title="GCR Bullish Inflection", 
+               message="🟡 GCR Bullish Setup: {{ticker}} - Oversold with volume spike. Watch for reversal.")
+
+alertcondition(bearish_div, 
+               title="Bearish Divergence Detected", 
+               message="📉 Bearish divergence on {{ticker}} - Price making higher highs but momentum weakening.")
+
+alertcondition(bullish_div, 
+               title="Bullish Divergence Detected", 
+               message="📈 Bullish divergence on {{ticker}} - Price making lower lows but momentum strengthening.")
+
+// ============================================================================
+// SCREENER VALUES (For TradingView Screener)
+// These can be used in the screener to filter symbols
+// ============================================================================
+
+// Export key values for screener
+plot(score, "GCR Score", display=display.status_line)
+plot(rsi, "RSI Value", display=display.status_line)
+plot(relative_volume, "Relative Volume", display=display.status_line)
+plot(bearish_inflection ? 1 : 0, "Bearish Signal", display=display.status_line)
+plot(bullish_inflection ? 1 : 0, "Bullish Signal", display=display.status_line)

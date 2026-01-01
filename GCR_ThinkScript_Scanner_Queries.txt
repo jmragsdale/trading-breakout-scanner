@@ -1,0 +1,234 @@
+# ============================================================================
+# GCR SCANNER QUERIES FOR THINKORSWIM
+# ============================================================================
+# Copy these queries into thinkorswim Stock Hacker Scanner
+# ============================================================================
+
+# ============================================================================
+# SCANNER QUERY 1: STRONG BEARISH INFLECTION (SHORT SETUP)
+# ============================================================================
+# Description: Find stocks at extreme overbought with volume exhaustion
+# This identifies potential tops where GCR would short
+# ============================================================================
+
+# --- Custom Filter 1: RSI Overbought ---
+# Add Study Filter > RSI() > is greater than > 75
+
+# --- Custom Filter 2: Volume Spike ---
+# Add Study Filter > Custom Study (paste below)
+
+def volumeMA = Average(volume, 20);
+def volumeSpike = volume > volumeMA * 2.5;
+plot scan = volumeSpike;
+
+# --- Custom Filter 3: Price at Upper Bollinger Band ---
+# Add Study Filter > Custom Study (paste below)
+
+def bbUpper = BollingerBands(20, 2, 2).UpperBand;
+plot scan = high >= bbUpper;
+
+# --- Custom Filter 4: Red Candle (Rejection) ---
+# Add Study Filter > Custom Study (paste below)
+
+plot scan = close < open;
+
+
+# ============================================================================
+# SCANNER QUERY 2: STRONG BULLISH INFLECTION (LONG SETUP)  
+# ============================================================================
+# Description: Find stocks at extreme oversold with capitulation volume
+# This identifies potential bottoms where GCR would go long
+# ============================================================================
+
+# --- Custom Filter 1: RSI Oversold ---
+# Add Study Filter > RSI() > is less than > 25
+
+# --- Custom Filter 2: Volume Spike ---
+# Add Study Filter > Custom Study (paste below)
+
+def volumeMA = Average(volume, 20);
+def volumeSpike = volume > volumeMA * 2.5;
+plot scan = volumeSpike;
+
+# --- Custom Filter 3: Price at Lower Bollinger Band ---
+# Add Study Filter > Custom Study (paste below)
+
+def bbLower = BollingerBands(20, 2, 2).LowerBand;
+plot scan = low <= bbLower;
+
+# --- Custom Filter 4: Green Candle (Reversal) ---
+# Add Study Filter > Custom Study (paste below)
+
+plot scan = close > open;
+
+
+# ============================================================================
+# SCANNER QUERY 3: BEARISH DIVERGENCE
+# ============================================================================
+# Description: Find stocks making higher highs but RSI making lower highs
+# Key contrarian signal for potential tops
+# ============================================================================
+
+# Copy this entire code block as Custom Study:
+
+input lookback = 30;
+def priceHigh1 = Highest(high, lookback / 2);
+def priceHigh2 = Highest(high[lookback/2], lookback / 2);
+def rsi = RSI(14);
+def rsiHigh1 = Highest(rsi, lookback / 2);
+def rsiHigh2 = Highest(rsi[lookback/2], lookback / 2);
+
+def bearishDiv = high >= priceHigh1 and 
+                 priceHigh1 > priceHigh2 and 
+                 rsiHigh1 < rsiHigh2 and 
+                 rsi > 60;
+
+plot scan = bearishDiv;
+
+
+# ============================================================================
+# SCANNER QUERY 4: BULLISH DIVERGENCE
+# ============================================================================
+# Description: Find stocks making lower lows but RSI making higher lows
+# Key contrarian signal for potential bottoms
+# ============================================================================
+
+# Copy this entire code block as Custom Study:
+
+input lookback = 30;
+def priceLow1 = Lowest(low, lookback / 2);
+def priceLow2 = Lowest(low[lookback/2], lookback / 2);
+def rsi = RSI(14);
+def rsiLow1 = Lowest(rsi, lookback / 2);
+def rsiLow2 = Lowest(rsi[lookback/2], lookback / 2);
+
+def bullishDiv = low <= priceLow1 and 
+                 priceLow1 < priceLow2 and 
+                 rsiLow1 > rsiLow2 and 
+                 rsi < 40;
+
+plot scan = bullishDiv;
+
+
+# ============================================================================
+# SCANNER QUERY 5: COMPLETE GCR SCORE SCANNER
+# ============================================================================
+# Description: Calculate full GCR score for any symbol
+# Use this as a Custom Column to sort by score
+# ============================================================================
+
+# Copy this entire code block as Custom Study for Column:
+
+def rsi = RSI(14);
+def stochK = StochasticFull("k period" = 14).FullK;
+def volumeMA = Average(volume, 20);
+def volumeSpike = volume > volumeMA * 2;
+def bbUpper = BollingerBands(20, 2, 2).UpperBand;
+def bbLower = BollingerBands(20, 2, 2).LowerBand;
+
+def rsiScore = (50 - rsi) / 2;
+def stochScore = (50 - stochK) * 0.3;
+def volScore = if volumeSpike then (if close > open then 10 else -10) else 0;
+def bbScore = if high >= bbUpper then -25 else if low <= bbLower then 25 else 0;
+
+def GCRScore = rsiScore + stochScore + volScore + bbScore;
+
+plot scan = GCRScore;
+# Positive score = bullish setup, Negative score = bearish setup
+
+
+# ============================================================================
+# SCANNER QUERY 6: RELATIVE STRENGTH FILTER
+# ============================================================================
+# Description: Find stocks showing strength vs weakness
+# GCR prefers NEW leaders over old laggards
+# ============================================================================
+
+# --- Strong vs Market (Bullish Screening) ---
+# Copy this as Custom Study:
+
+def stock20 = (close - close[20]) / close[20] * 100;
+def spy20 = (close("SPY") - close("SPY")[20]) / close("SPY")[20] * 100;
+def outperforming = stock20 > spy20 and stock20 > 0;
+
+plot scan = outperforming;
+
+# --- Weak vs Market (Bearish Screening) ---
+# Copy this as Custom Study:
+
+def stock20 = (close - close[20]) / close[20] * 100;
+def spy20 = (close("SPY") - close("SPY")[20]) / close("SPY")[20] * 100;
+def underperforming = stock20 < spy20 and stock20 < 0;
+
+plot scan = underperforming;
+
+
+# ============================================================================
+# SCANNER QUERY 7: "SELL THE NEWS" DETECTOR
+# ============================================================================
+# Description: Find stocks that have gapped up significantly and 
+# are now showing exhaustion - the classic "sell the news" setup
+# ============================================================================
+
+# Copy this as Custom Study:
+
+input gapThreshold = 3; # Minimum gap percentage
+
+def gapUp = (open - close[1]) / close[1] * 100 >= gapThreshold;
+def highVolume = volume > Average(volume, 20) * 2;
+def redCandle = close < open;
+def nearHigh = high >= Highest(high, 50) * 0.98;
+def rsiHigh = RSI(14) > 70;
+
+def sellTheNews = gapUp and highVolume and redCandle and rsiHigh;
+
+plot scan = sellTheNews;
+
+
+# ============================================================================
+# HOW TO USE IN THINKORSWIM SCANNER
+# ============================================================================
+# 
+# 1. Go to Scan > Stock Hacker
+# 
+# 2. Click "Add Study Filter" 
+# 
+# 3. Select "Custom Study"
+#
+# 4. Click the pencil icon to edit
+#
+# 5. Copy/paste the code from above
+#
+# 6. Click OK, then set your filter conditions
+#
+# 7. Add additional filters as needed
+#
+# 8. Set your universe (S&P 500, All Stocks, etc.)
+#
+# 9. Click "Scan"
+#
+# ============================================================================
+# RECOMMENDED SCANNER SETUP
+# ============================================================================
+#
+# For BEARISH setups (Short candidates):
+# - RSI > 70
+# - Volume > 2x average
+# - Price at/above Upper BB
+# - Red candle today
+# - Optional: Add bearish divergence filter
+#
+# For BULLISH setups (Long candidates):
+# - RSI < 30
+# - Volume > 2x average  
+# - Price at/below Lower BB
+# - Green candle today
+# - Optional: Add bullish divergence filter
+#
+# For SCORE-based scanning:
+# - Add GCR Score as column
+# - Sort by score descending (for bullish) or ascending (for bearish)
+# - Score > 40 = Strong bullish
+# - Score < -40 = Strong bearish
+#
+# ============================================================================
