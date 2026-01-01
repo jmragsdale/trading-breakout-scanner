@@ -64,22 +64,22 @@ Choose your platform:
 
 ## 🎓 Strategy Criteria Explained
 
-### 1. Market Leader (龙头股)
+### 1. Market Leader
 Stocks showing relative strength vs peers in their sector.
 
-### 2. First Major Breakout (首次突破)
+### 2. First Major Breakout
 Breaking out from a consolidation base, not an extended move.
 
-### 3. New Highs (突破新高)
+### 3. New Highs
 Breaking above 6-month or all-time highs with conviction.
 
-### 4. Volume Surge (交易量巨大)
+### 4. Volume Surge
 Trading volume must be 2x or more above 20-day average.
 
-### 5. Strong Momentum (涨幅>10%)
+### 5. Strong Momentum
 Daily gain must exceed 10% to show buying pressure.
 
-### 6. Above Moving Average (长阳线)
+### 6. Above Moving Average
 Price must close above 200-day MA to confirm uptrend.
 
 ## 📈 Risk Management
@@ -192,6 +192,6 @@ MIT License - Feel free to use, modify, and distribute.
 ---
 
 **Built with:** TradingView Pine Script v5 | ThinkScript  
-**Strategy:** 5000x Breakout Method (市场龙头短线策略)  
+**Strategy:** 5000x Breakout Method  
 **Author:** Jermaine Ragsdale  
 **Last Updated:** December 2025
