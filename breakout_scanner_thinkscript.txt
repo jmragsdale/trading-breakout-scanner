@@ -1,0 +1,168 @@
+# ==========================================
+# BREAKOUT SCANNER - THINKSCRIPT VERSION
+# For ThinkOrSwim / TD Ameritrade
+# Based on 5000x Breakout Strategy
+# ==========================================
+
+declare upper;
+
+# ==========================================
+# INPUT PARAMETERS
+# ==========================================
+
+input lookbackPeriod = 126;          # 6 months of trading days
+input volumeMultiple = 2.0;          # Volume must be 2x average
+input minDailyGainPercent = 10.0;    # Minimum daily gain
+input longTermMALength = 200;        # Long-term moving average
+
+# ==========================================
+# CALCULATIONS
+# ==========================================
+
+# Daily price change percentage
+def dailyChange = ((close - close[1]) / close[1]) * 100;
+
+# Highest high over lookback period
+def highestHigh = Highest(high, lookbackPeriod);
+
+# Average volume (20-day)
+def avgVolume = Average(volume, 20);
+
+# Long-term moving average
+def longMA = Average(close, longTermMALength);
+
+# ==========================================
+# CONDITION CHECKS
+# ==========================================
+
+# Condition 1: Breaking to new high (current high >= previous period's highest)
+def isNewHigh = high >= highestHigh[1];
+
+# Condition 2: High volume (volume exceeds multiple of average)
+def isHighVolume = volume >= (avgVolume * volumeMultiple);
+
+# Condition 3: Strong daily gain
+def isStrongGain = dailyChange >= minDailyGainPercent;
+
+# Condition 4: Close above long-term MA
+def aboveLongMA = close > longMA;
+
+# Condition 5: First major breakout (wasn't at highs 20 days ago)
+def isFirstBreakout = high[20] < (highestHigh * 0.95);
+
+# ==========================================
+# COMBINED BREAKOUT SIGNAL
+# ==========================================
+
+def breakoutSignal = isNewHigh and isHighVolume and isStrongGain 
+                     and aboveLongMA and isFirstBreakout;
+
+# ==========================================
+# VISUAL ELEMENTS
+# ==========================================
+
+# Plot the long-term moving average
+plot LongTermMA = longMA;
+LongTermMA.SetDefaultColor(Color.BLUE);
+LongTermMA.SetLineWeight(2);
+
+# Background color for breakout
+AddCloud(if breakoutSignal then Double.POSITIVE_INFINITY else Double.NaN, 
+         Double.NEGATIVE_INFINITY, 
+         Color.LIGHT_GREEN, 
+         Color.CURRENT);
+
+# Breakout signal marker
+plot BreakoutMarker = if breakoutSignal then low * 0.99 else Double.NaN;
+BreakoutMarker.SetPaintingStrategy(PaintingStrategy.BOOLEAN_ARROW_UP);
+BreakoutMarker.SetDefaultColor(Color.GREEN);
+BreakoutMarker.SetLineWeight(3);
+
+# ==========================================
+# LABELS
+# ==========================================
+
+AddLabel(yes, "Daily Change: " + Round(dailyChange, 2) + "%", 
+         if dailyChange >= minDailyGainPercent 
+         then Color.GREEN 
+         else Color.GRAY);
+
+AddLabel(yes, "Vol vs Avg: " + Round(volume / avgVolume, 2) + "x", 
+         if isHighVolume 
+         then Color.GREEN 
+         else Color.GRAY);
+
+AddLabel(yes, "New High: " + if isNewHigh then "YES" else "NO", 
+         if isNewHigh 
+         then Color.GREEN 
+         else Color.GRAY);
+
+AddLabel(breakoutSignal, "★ BREAKOUT SIGNAL ★", Color.WHITE, Color.GREEN);
+
+# ==========================================
+# ALERTS
+# ==========================================
+
+Alert(breakoutSignal, "BREAKOUT: All conditions met!", Alert.BAR, Sound.Ring);
+
+# ==========================================
+# SCAN QUERY FOR STOCK SCREENER
+# ==========================================
+# 
+# Copy the code below and paste it into ThinkOrSwim Stock Screener:
+# (Go to: Scan > Stock Hacker > Add Custom Study Filter)
+#
+# def dailyChange = ((close - close[1]) / close[1]) * 100;
+# def highestHigh = Highest(high, 126);
+# def avgVolume = Average(volume, 20);
+# def longMA = Average(close, 200);
+# def isNewHigh = high >= highestHigh[1];
+# def isHighVolume = volume >= (avgVolume * 2.0);
+# def isStrongGain = dailyChange >= 10.0;
+# def aboveLongMA = close > longMA;
+# def isFirstBreakout = high[20] < (highestHigh * 0.95);
+# def breakoutSignal = isNewHigh and isHighVolume and isStrongGain and aboveLongMA and isFirstBreakout;
+# plot scan = breakoutSignal;
+#
+# ==========================================
+
+# ==========================================
+# USAGE INSTRUCTIONS
+# ==========================================
+#
+# METHOD 1 - ADD TO CHART:
+# 1. Open ThinkOrSwim
+# 2. Go to Studies > Edit Studies > New
+# 3. Name it "Breakout Scanner"
+# 4. Copy and paste this entire script
+# 5. Click OK and add to chart
+#
+# METHOD 2 - CREATE A SCAN:
+# 1. Go to Scan tab in ThinkOrSwim
+# 2. Click "Stock Hacker"
+# 3. Add Filter > Study Filter
+# 4. Choose "Custom" 
+# 5. Paste the SCAN QUERY code above
+# 6. Set scan frequency (e.g., every 5 minutes during market hours)
+#
+# METHOD 3 - WATCHLIST COLUMN:
+# 1. Right-click on any watchlist column
+# 2. Customize > Create Custom Column
+# 3. Name it "Breakout"
+# 4. Use simplified version:
+#    def signal = [paste simplified scan code];
+#    AddLabel(yes, if signal then "✓" else "", Color.GREEN);
+#
+# RECOMMENDED SETTINGS:
+# - Timeframe: Daily (1D)
+# - Markets: US Stocks, ETFs
+# - Scan Universe: S&P 500, Russell 2000, or All Stocks
+# - Frequency: Every 5-30 minutes during market hours
+#
+# CUSTOMIZATION:
+# - Adjust lookbackPeriod for different timeframes (126 = 6 months)
+# - Increase minDailyGainPercent for more aggressive entries (15%+)
+# - Decrease volumeMultiple for more signals (1.5x)
+# - Change longTermMALength for different trend confirmation (150, 200, 250)
+#
+# ==========================================

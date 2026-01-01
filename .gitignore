@@ -1,0 +1,96 @@
+# Trading Strategy Files - .gitignore
+
+# Sensitive Data - NEVER COMMIT
+*.key
+*.pem
+*.env
+.env.*
+config.json
+credentials.json
+api_keys.txt
+broker_credentials.txt
+
+# Personal Trading Data
+trades.csv
+backtest_results.xlsx
+my_watchlist.txt
+personal_notes.txt
+portfolio.json
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# Logs
+*.log
+logs/
+*.out
+
+# Temporary Files
+tmp/
+temp/
+*.tmp
+*.bak
+*.backup
+
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
+
+# Database Files
+*.db
+*.sqlite
+*.sqlite3
+
+# Compiled Source
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# Package Manager
+node_modules/
+package-lock.json
+yarn.lock
+
+# Documentation Build
+_build/
+docs/_build/
+
+# Keep
+!README.md
+!*.pine
+!*.txt
+!SETUP_GUIDE.md
+!QUICK_START.md

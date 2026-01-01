@@ -1,0 +1,142 @@
+//@version=5
+indicator("5000x Breakout Scanner", overlay=true)
+
+// ==========================================
+// BREAKOUT STRATEGY SCANNER
+// Based on: Finding market leaders breaking to new highs
+// ==========================================
+
+// Input Parameters
+lengthHighs = input.int(126, "Lookback Period (6 months ~126 bars)", minval=20)
+volumeMultiple = input.float(2.0, "Volume Multiple vs Average", minval=1.0, step=0.1)
+minDailyGain = input.float(10.0, "Minimum Daily Gain %", minval=5.0, step=1.0)
+maLength = input.int(200, "Long-term MA Length", minval=50)
+
+// Calculate Key Metrics
+dailyChange = ((close - close[1]) / close[1]) * 100
+highestHigh = ta.highest(high, lengthHighs)
+avgVolume = ta.sma(volume, 20)
+longMA = ta.sma(close, maLength)
+
+// ==========================================
+// SCANNER CONDITIONS
+// ==========================================
+
+// Condition 1: Breaking to new 6-month or historical high
+isNewHigh = high >= highestHigh[1]
+
+// Condition 2: Large volume (significantly above average)
+isHighVolume = volume >= (avgVolume * volumeMultiple)
+
+// Condition 3: Daily surge exceeds minimum threshold (default 10%)
+isStrongGain = dailyChange >= minDailyGain
+
+// Condition 4: Close above long-term moving average
+aboveLongMA = close > longMA
+
+// Condition 5: First major breakout (not in extended rally)
+// Check that price wasn't at highs in recent past (20 bars ago)
+isFirstBreakout = high[20] < (highestHigh * 0.95)
+
+// ==========================================
+// COMBINED SIGNAL
+// ==========================================
+
+// All conditions must be true
+breakoutSignal = isNewHigh and isHighVolume and isStrongGain and aboveLongMA and isFirstBreakout
+
+// ==========================================
+// VISUAL INDICATORS
+// ==========================================
+
+// Plot long-term MA
+plot(longMA, "Long-term MA", color=color.blue, linewidth=2)
+
+// Background color for breakout signal
+bgcolor(breakoutSignal ? color.new(color.green, 80) : na, title="Breakout Signal")
+
+// Plot breakout marker
+plotshape(breakoutSignal, "Breakout!", style=shape.triangleup, location=location.belowbar, 
+          color=color.green, size=size.large, text="BREAKOUT")
+
+// ==========================================
+// ALERT CONDITION
+// ==========================================
+
+alertcondition(breakoutSignal, title="Breakout Alert", 
+               message="{{ticker}} - Breakout Signal! Price: {{close}}, Gain: " + str.tostring(dailyChange, "#.##") + "%")
+
+// ==========================================
+// STATS TABLE
+// ==========================================
+
+if breakoutSignal
+    var table statsTable = table.new(position.top_right, 2, 7, 
+                                     bgcolor=color.new(color.black, 90), 
+                                     border_width=2, 
+                                     border_color=color.green,
+                                     frame_width=2,
+                                     frame_color=color.green)
+    
+    // Headers
+    table.cell(statsTable, 0, 0, "Metric", text_color=color.white, bgcolor=color.new(color.green, 70))
+    table.cell(statsTable, 1, 0, "Value", text_color=color.white, bgcolor=color.new(color.green, 70))
+    
+    // Data rows
+    table.cell(statsTable, 0, 1, "Daily Gain", text_color=color.white)
+    table.cell(statsTable, 1, 1, str.tostring(dailyChange, "#.##") + "%", 
+               text_color=dailyChange >= 15 ? color.lime : color.green)
+    
+    table.cell(statsTable, 0, 2, "Volume vs Avg", text_color=color.white)
+    table.cell(statsTable, 1, 2, str.tostring(volume/avgVolume, "#.##") + "x", 
+               text_color=color.green)
+    
+    table.cell(statsTable, 0, 3, "New High", text_color=color.white)
+    table.cell(statsTable, 1, 3, isNewHigh ? "✓ YES" : "✗ NO", 
+               text_color=isNewHigh ? color.lime : color.red)
+    
+    table.cell(statsTable, 0, 4, "Above MA", text_color=color.white)
+    table.cell(statsTable, 1, 4, aboveLongMA ? "✓ YES" : "✗ NO", 
+               text_color=aboveLongMA ? color.lime : color.red)
+    
+    table.cell(statsTable, 0, 5, "Price", text_color=color.white)
+    table.cell(statsTable, 1, 5, str.tostring(close, "#.##"), text_color=color.yellow)
+    
+    table.cell(statsTable, 0, 6, "Status", text_color=color.white)
+    table.cell(statsTable, 1, 6, "BREAKOUT!", 
+               text_color=color.white, bgcolor=color.new(color.green, 30))
+
+// ==========================================
+// USAGE INSTRUCTIONS
+// ==========================================
+// 
+// HOW TO USE THIS SCANNER:
+// 
+// 1. Add this indicator to any chart in TradingView
+// 
+// 2. To scan multiple stocks:
+//    - Go to Stock Screener
+//    - Or use TradingView's Alert system
+//    - Create alerts for this indicator
+// 
+// 3. Recommended Settings:
+//    - Timeframe: Daily (1D)
+//    - Lookback: 126 bars (6 months)
+//    - Min Daily Gain: 10%
+//    - Volume Multiple: 2x
+// 
+// 4. For automated scanning:
+//    - Set up alerts with the built-in alert condition
+//    - TradingView will notify you when conditions are met
+// 
+// 5. Best Markets:
+//    - Stocks (not suitable for crypto due to high volatility)
+//    - Liquid markets with good volume
+//    - Growth stocks and market leaders
+// 
+// SIGNAL INTERPRETATION:
+// - Green triangle = All conditions met
+// - Green background = Breakout in progress
+// - Stats table = Detailed metrics (appears on signal)
+// 
+// ==========================================
