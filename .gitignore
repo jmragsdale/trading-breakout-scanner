@@ -94,3 +94,5 @@ docs/_build/
 !*.txt
 !SETUP_GUIDE.md
 !QUICK_START.md
+
+*_onenote.html
