@@ -1,0 +1,38 @@
+// @description Exports OHLCV data to CSV format via Pine Logs
+// Copy output from View > Pine Logs, paste into a .csv file
+//@version=6
+indicator("Data Exporter for Optimizer", overlay=true)
+
+// Settings
+export_bars = input.int(2000, "Bars to Export", minval=100, maxval=5000,
+     tooltip="Number of historical bars to export. More bars = better optimization.")
+include_header = input.bool(true, "Include CSV Header")
+
+// Only run on last bar to avoid repeated exports
+if barstate.islast
+    // Print header first
+    if include_header
+        log.info("time,open,high,low,close,volume")
+
+    // Export data from oldest to newest
+    // We go backwards from current bar
+    int bars_available = math.min(export_bars, bar_index)
+
+    for i = bars_available to 0
+        string timestamp = str.format("{0,date,yyyy-MM-dd HH:mm}", time[i])
+        string row = timestamp + "," +
+             str.tostring(open[i]) + "," +
+             str.tostring(high[i]) + "," +
+             str.tostring(low[i]) + "," +
+             str.tostring(close[i]) + "," +
+             str.tostring(volume[i], "#")
+        log.info(row)
+
+// Show export status on chart
+var table status_table = table.new(position.top_right, 1, 3, bgcolor=color.new(color.black, 70))
+
+if barstate.islast
+    int bars_available = math.min(export_bars, bar_index)
+    table.cell(status_table, 0, 0, "DATA EXPORTER", text_color=color.white, bgcolor=color.new(color.blue, 50))
+    table.cell(status_table, 0, 1, "Bars: " + str.tostring(bars_available), text_color=color.lime)
+    table.cell(status_table, 0, 2, "Check Pine Logs (View menu)", text_color=color.yellow)

@@ -1,0 +1,31 @@
+BEST PARAMETERS FOR DISPLACEMENT WICK STRATEGY
+==================================================
+
+Copy these settings to your TradingView strategy:
+
+displacement_length: 195
+min_displacement_strength: 2
+max_displacement_strength: 4
+min_wick_pct: 30.0
+min_wick_body_ratio: 0.30000000000000004
+trend_ema_length: 54
+entry_method: zone_touch
+target_method: wick_fill
+stop_method: fixed_ticks
+atr_stop_mult: 3.0
+wick_extreme_mult: 1.75
+fixed_stop_ticks: 39
+target_rr: 2.75
+use_max_risk_filter: True
+max_risk_ticks: 69
+trade_direction: auto
+zone_extend_bars: 54
+tick_size: 0.25
+tick_value: 0.5
+
+
+BACKTEST RESULTS:
+Total Trades: 38
+Win Rate: 52.63%
+Profit Factor: 3.056
+Total P&L: $721.50
