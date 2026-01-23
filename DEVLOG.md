@@ -3,6 +3,17 @@
 Auto-generated journal of project changes.
 Generated: 2026-01-05 19:39
 
+## 2026-01-23 12:34
+
+**Commit:** 
+
+Update .gitignore and sync CHANGELOG/DEVLOG files
+
+**Files:** .claude/settings.local.json,CHANGELOG.md,DEVLOG.md,EXPORT_TV_DATA.md,GCR_Strategy_Scanner_ThinkScript.ts,best_parameters.txt,data_exporter.pine,displacement_wick_optimizer.py,mnq_data.csv,optimized_trades.csv,setup_optimizer.sh
+
+---
+
+
 ## 2026-01-04
 
 **Commit:** `2d3363a`
