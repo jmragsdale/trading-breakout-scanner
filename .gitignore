@@ -96,3 +96,29 @@ docs/_build/
 !QUICK_START.md
 
 *_onenote.html
+
+# ===== Secrets & local config — added by security scan (do not commit) =====
+.env
+.env.*
+!.env.example
+*.tfvars
+!*.tfvars.example
+terraform.tfstate
+terraform.tfstate.*
+*.tfstate
+*.tfstate.*
+.terraform/
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+*.jks
+id_rsa
+id_ed25519
+credentials
+secrets.json
+secrets.yaml
+secrets.yml
+.DS_Store
+# ===== end secrets block =====
