@@ -122,3 +122,9 @@ secrets.yaml
 secrets.yml
 .DS_Store
 # ===== end secrets block =====
+
+# Local editor permissions, environments, exports and optimizer outputs
+.claude/
+optimizer_env/
+local-data/
+results/

@@ -1,68 +1,28 @@
-# How to Export TradingView Data for Python Optimizer
+# Chart CSV input for local research
 
-## Method 1: Using the Data Exporter Indicator (Recommended)
+Use [data_exporter.pine](data_exporter.pine) to produce chart OHLCV rows through Pine Logs. Review the chart symbol, timeframe and loaded history before export. This utility exports chart bars; it does not establish a complete or licensed historical dataset, a continuous futures roll policy or a trading result.
 
-### Step 1: Add the Indicator
-1. In TradingView, open Pine Editor (bottom panel)
-2. Click "Open" and select `data_exporter.pine` from this folder
-   - OR copy/paste the code from `data_exporter.pine`
-3. Click "Add to Chart"
+## Save a new export
 
-### Step 2: Configure and Export
-1. Make sure you're on MNQ 5-minute chart
-2. Click the indicator settings (gear icon)
-3. Set "Bars to Export" to desired amount (2000 is good)
-4. Go to **View > Pine Logs** (or press Cmd+Shift+P and type "Pine Logs")
-5. You'll see the CSV data in the logs
+1. Compile the exporter on the chart you intend to research.
+2. Review `Bars to Export` and `Include CSV Header`.
+3. Copy the CSV rows from Pine Logs, excluding log timestamps, prefixes and unrelated messages.
+4. Save them as `local-data/mnq_data.csv` inside your checkout. `local-data/` is ignored by Git. Do not replace the retained historical snapshot under `research/snapshots/`.
 
-### Step 3: Save the Data
-1. In Pine Logs, click the **copy icon** (top right of the logs panel)
-2. Open a text editor (TextEdit, VS Code, etc.)
-3. Paste the data
-4. Save as `mnq_data.csv` in the trading-breakout-scanner folder
+The standard export fields are `time,open,high,low,close,volume`. The existing loader requires OHLC fields, accepts time/date/datetime/timestamp and OHLCV aliases, and parses time when present; inspect `load_csv_data` in [the optimizer source](displacement_wick_optimizer.py) for exact parsing behavior. Check timestamps, duplicates, gaps and numeric values before a run. Export source timezone and any futures contract/roll treatment must be recorded separately; the CSV alone does not establish those facts.
 
-### Step 4: Run the Optimizer
+## Run the existing Python tool
+
+From the repository root, the existing setup helper creates an environment and installs its listed packages:
+
 ```bash
-cd /Users/jermaineragsdale/Documents/jmragsdale/trading-breakout-scanner
+bash setup_optimizer.sh
 source optimizer_env/bin/activate
-python displacement_wick_optimizer.py --data mnq_data.csv
+mkdir -p local-data results
+cd results
+python ../displacement_wick_optimizer.py --data ../local-data/mnq_data.csv
 ```
 
----
+Running from `results/` keeps generated `best_parameters.txt` and `optimized_trades.csv` in one ignored output location. Give separate research runs their own subfolder if retaining multiple experiments. The historical tracked snapshots remain unchanged.
 
-## Method 2: Manual Copy from Data Window
-
-If the indicator approach doesn't work:
-
-1. Press `Alt+D` (or `Option+D` on Mac) to open Data Window
-2. Hover over each bar and manually record OHLCV
-3. This is tedious but works for small datasets
-
----
-
-## Method 3: Use a Third-Party Tool
-
-- **TradingView Data Downloader** browser extensions
-- **tvDatafeed** Python library: `pip install tvDatafeed`
-
-Example with tvDatafeed:
-```python
-from tvDatafeed import TvDatafeed, Interval
-
-tv = TvDatafeed()
-data = tv.get_hist('MNQ1!', 'CME_MINI', interval=Interval.in_5_minute, n_bars=2000)
-data.to_csv('mnq_data.csv')
-```
-
----
-
-## CSV Format Expected
-
-The optimizer expects these columns (case-insensitive):
-```
-time,open,high,low,close,volume
-2024-01-15 09:30,17500.25,17505.50,17498.00,17503.75,1234
-2024-01-15 09:35,17503.75,17510.00,17502.00,17508.25,987
-```
-
-Column names can be: time/date/datetime, open/o, high/h, low/l, close/c, volume/v
+The script's no-`--data` branch downloads data through its existing Yahoo Finance path. This cleanup did not run either data acquisition or optimization. Parameter-search results from this separate displacement-wick model do not validate the Pine breakout/GCR indicators, another platform or future trading performance.
